@@ -1,0 +1,253 @@
+[
+  {
+    "name": "simple_sns_notification",
+    "description": "Test simple SNS notification forwarded to default Slack channel",
+    "sns_payload": {
+      "Records": [
+        {
+          "EventSource": "aws:sns",
+          "EventVersion": "1.0",
+          "Sns": {
+            "Type": "Notification",
+            "MessageId": "test-msg-123",
+            "TopicArn": "arn:aws:sns:us-east-1:123456789012:test-alerts",
+            "Subject": "Test Alert",
+            "Message": "This is a test alert message",
+            "Timestamp": "2025-01-15T10:30:00.000Z"
+          }
+        }
+      ]
+    },
+    "expected_calls": [
+      {
+        "service": "slack",
+        "method": "POST",
+        "path": "/chat.postMessage"
+      }
+    ],
+    "mock_responses": [
+      {
+        "service": "slack",
+        "method": "POST",
+        "path": "/auth.test",
+        "status_code": 200,
+        "body": "{\"ok\":true,\"user\":\"test_user\",\"team\":\"Test Team\"}"
+      },
+      {
+        "service": "slack",
+        "method": "POST",
+        "path": "/chat.postMessage",
+        "status_code": 200,
+        "body": "{\"ok\":true,\"channel\":\"C01234DEFAULT\",\"ts\":\"1234567890.123456\"}"
+      }
+    ]
+  },
+  {
+    "name": "error_severity_notification",
+    "description": "Test error notification with red color indicator",
+    "sns_payload": {
+      "Records": [
+        {
+          "EventSource": "aws:sns",
+          "Sns": {
+            "Type": "Notification",
+            "MessageId": "error-msg-456",
+            "TopicArn": "arn:aws:sns:us-east-1:123456789012:prod-alerts",
+            "Subject": "ERROR: Database Connection Failed",
+            "Message": "{\"service\":\"api\",\"error\":\"connection timeout\",\"timestamp\":\"2025-01-15T11:00:00Z\"}",
+            "Timestamp": "2025-01-15T11:00:00.000Z"
+          }
+        }
+      ]
+    },
+    "expected_calls": [
+      {
+        "service": "slack",
+        "method": "POST",
+        "path": "/chat.postMessage"
+      }
+    ],
+    "mock_responses": [
+      {
+        "service": "slack",
+        "method": "POST",
+        "path": "/auth.test",
+        "status_code": 200,
+        "body": "{\"ok\":true}"
+      },
+      {
+        "service": "slack",
+        "method": "POST",
+        "path": "/chat.postMessage",
+        "status_code": 200,
+        "body": "{\"ok\":true,\"channel\":\"C01234DEFAULT\",\"ts\":\"1234567890.123456\"}"
+      }
+    ]
+  },
+  {
+    "name": "json_formatted_message",
+    "description": "Test JSON message is pretty-printed in Slack",
+    "sns_payload": {
+      "Records": [
+        {
+          "EventSource": "aws:sns",
+          "Sns": {
+            "Type": "Notification",
+            "MessageId": "json-msg-789",
+            "TopicArn": "arn:aws:sns:us-west-2:987654321098:api-events",
+            "Subject": "API Event",
+            "Message": "{\"requestId\":\"abc123\",\"method\":\"POST\",\"path\":\"/api/users\",\"status\":201,\"duration\":125}",
+            "Timestamp": "2025-01-15T12:00:00.000Z"
+          }
+        }
+      ]
+    },
+    "expected_calls": [
+      {
+        "service": "slack",
+        "method": "POST",
+        "path": "/chat.postMessage"
+      }
+    ],
+    "mock_responses": [
+      {
+        "service": "slack",
+        "method": "POST",
+        "path": "/auth.test",
+        "status_code": 200,
+        "body": "{\"ok\":true}"
+      },
+      {
+        "service": "slack",
+        "method": "POST",
+        "path": "/chat.postMessage",
+        "status_code": 200,
+        "body": "{\"ok\":true,\"channel\":\"C01234DEFAULT\",\"ts\":\"1234567890.123456\"}"
+      }
+    ]
+  },
+  {
+    "name": "multiple_sns_records",
+    "description": "Test multiple SNS records in a single event",
+    "sns_payload": {
+      "Records": [
+        {
+          "EventSource": "aws:sns",
+          "Sns": {
+            "Type": "Notification",
+            "MessageId": "msg-1",
+            "TopicArn": "arn:aws:sns:us-east-1:123456789012:alerts",
+            "Subject": "Alert 1",
+            "Message": "First alert message",
+            "Timestamp": "2025-01-15T13:00:00.000Z"
+          }
+        },
+        {
+          "EventSource": "aws:sns",
+          "Sns": {
+            "Type": "Notification",
+            "MessageId": "msg-2",
+            "TopicArn": "arn:aws:sns:us-east-1:123456789012:alerts",
+            "Subject": "Alert 2",
+            "Message": "Second alert message",
+            "Timestamp": "2025-01-15T13:01:00.000Z"
+          }
+        }
+      ]
+    },
+    "expected_calls": [
+      {
+        "service": "slack",
+        "method": "POST",
+        "path": "/chat.postMessage"
+      }
+    ],
+    "mock_responses": [
+      {
+        "service": "slack",
+        "method": "POST",
+        "path": "/auth.test",
+        "status_code": 200,
+        "body": "{\"ok\":true}"
+      },
+      {
+        "service": "slack",
+        "method": "POST",
+        "path": "/chat.postMessage",
+        "status_code": 200,
+        "body": "{\"ok\":true,\"channel\":\"C01234DEFAULT\",\"ts\":\"1234567890.123456\"}"
+      }
+    ]
+  },
+  {
+    "name": "subscription_confirmation",
+    "description": "Test SNS subscription confirmation message handling",
+    "sns_payload": {
+      "Records": [
+        {
+          "EventSource": "aws:sns",
+          "Sns": {
+            "Type": "SubscriptionConfirmation",
+            "MessageId": "sub-conf-123",
+            "TopicArn": "arn:aws:sns:us-east-1:123456789012:new-topic",
+            "Subject": "",
+            "Message": "You have chosen to subscribe to the topic...",
+            "Timestamp": "2025-01-15T14:00:00.000Z"
+          }
+        }
+      ]
+    },
+    "expected_calls": [],
+    "mock_responses": [
+      {
+        "service": "slack",
+        "method": "POST",
+        "path": "/auth.test",
+        "status_code": 200,
+        "body": "{\"ok\":true}"
+      }
+    ]
+  },
+  {
+    "name": "cloudwatch_alarm",
+    "description": "Test CloudWatch alarm notification",
+    "sns_payload": {
+      "Records": [
+        {
+          "EventSource": "aws:sns",
+          "Sns": {
+            "Type": "Notification",
+            "MessageId": "alarm-msg-999",
+            "TopicArn": "arn:aws:sns:us-east-1:123456789012:cloudwatch-alarms",
+            "Subject": "ALARM: High CPU Usage",
+            "Message": "{\"AlarmName\":\"HighCPUAlarm\",\"AlarmDescription\":\"CPU usage exceeded 80%\",\"AWSAccountId\":\"123456789012\",\"NewStateValue\":\"ALARM\",\"NewStateReason\":\"Threshold Crossed\",\"StateChangeTime\":\"2025-01-15T15:00:00.000Z\",\"Region\":\"us-east-1\"}",
+            "Timestamp": "2025-01-15T15:00:00.000Z"
+          }
+        }
+      ]
+    },
+    "expected_calls": [
+      {
+        "service": "slack",
+        "method": "POST",
+        "path": "/chat.postMessage"
+      }
+    ],
+    "mock_responses": [
+      {
+        "service": "slack",
+        "method": "POST",
+        "path": "/auth.test",
+        "status_code": 200,
+        "body": "{\"ok\":true}"
+      },
+      {
+        "service": "slack",
+        "method": "POST",
+        "path": "/chat.postMessage",
+        "status_code": 200,
+        "body": "{\"ok\":true,\"channel\":\"C01234DEFAULT\",\"ts\":\"1234567890.123456\"}"
+      }
+    ]
+  }
+]

@@ -1,0 +1,34 @@
+[
+  {
+    "name": "production-alerts",
+    "sns_topic_arn": "arn:aws:sns:us-east-1:123456789012:prod-alerts",
+    "slack_channel_id": "C01234567890",
+    "enabled": true
+  },
+  {
+    "name": "staging-pattern",
+    "sns_topic_arn_pattern": ".*:staging-.*",
+    "slack_channel_id": "C09876543210",
+    "enabled": true
+  },
+  {
+    "name": "error-alerts-all-regions",
+    "sns_topic_arn_pattern": ".*-errors$",
+    "message_subject_pattern": "ERROR|CRITICAL|FATAL",
+    "slack_channel_id": "C05555555555",
+    "enabled": true
+  },
+  {
+    "name": "cloudwatch-alarms",
+    "sns_topic_arn_pattern": ".*:cloudwatch-alarms",
+    "slack_channel_id": "C06666666666",
+    "enabled": true
+  },
+  {
+    "name": "security-alerts",
+    "sns_topic_arn": "arn:aws:sns:us-east-1:123456789012:security-alerts",
+    "message_subject_pattern": "SECURITY|UNAUTHORIZED|BREACH",
+    "slack_channel_id": "C07777777777",
+    "enabled": true
+  }
+]
