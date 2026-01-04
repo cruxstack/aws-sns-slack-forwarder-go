@@ -5,7 +5,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/cruxstack/aws-sns-slackbot/internal/config"
+	"github.com/cruxstack/aws-sns-slack-forwarder-go/internal/config"
 )
 
 func TestRouterFindChannel(t *testing.T) {

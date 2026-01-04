@@ -56,13 +56,26 @@ func LoadConfig(ctx context.Context) (*Config, error) {
 		NotifyOnSubscription: getEnvBool("NOTIFY_ON_SUBSCRIPTION", false),
 	}
 
+	// Create a temporary logger for configuration loading
+	logger := NewLogger(cfg)
+
+	logger.Info("loading configuration",
+		"debug_enabled", cfg.DebugEnabled,
+		"slack_token_type", getTokenType(cfg.SlackToken),
+		"has_default_channel", cfg.SlackDefaultChannel != "",
+		"has_inline_routes", cfg.SNSRoutes != "",
+		"has_routes_param_arn", cfg.SNSRoutesParamArn != "",
+		"fallback_enabled", cfg.FallbackEnabled)
+
 	// Resolve SSM parameters for Slack token if needed
 	if isSSMArn(cfg.SlackToken) {
+		logger.Info("resolving Slack token from SSM", "arn", cfg.SlackToken)
 		val, err := getSSMParameter(ctx, cfg.SlackToken)
 		if err != nil {
 			return nil, fmt.Errorf("failed to fetch SLACK_TOKEN from SSM: %w", err)
 		}
 		cfg.SlackToken = val
+		logger.Info("successfully resolved Slack token from SSM")
 	}
 
 	// Load routes with precedence logic
@@ -181,6 +194,20 @@ func NewLogger(cfg *Config) *slog.Logger {
 	return slog.New(slog.NewTextHandler(os.Stdout, opts))
 }
 
+// getTokenType returns a safe description of token type for logging
+func getTokenType(token string) string {
+	if token == "" {
+		return "empty"
+	}
+	if isSSMArn(token) {
+		return "ssm_arn"
+	}
+	if strings.HasPrefix(token, "xoxb-") {
+		return "slack_bot_token"
+	}
+	return "direct_value"
+}
+
 // isSSMArn checks if a value is an SSM parameter ARN
 func isSSMArn(value string) bool {
 	return strings.HasPrefix(value, "arn:aws:ssm:")
@@ -219,8 +246,7 @@ func getSSMParameter(ctx context.Context, arn string) (string, error) {
 	if len(parts) < 6 {
 		return "", fmt.Errorf("invalid SSM ARN format: %s", arn)
 	}
-	paramName := strings.TrimPrefix(strings.Join(parts[5:], ":"), "parameter/")
-
+	paramName := strings.TrimPrefix(strings.Join(parts[5:], ":"), "parameter")
 	// Fetch parameter with decryption
 	input := &ssm.GetParameterInput{
 		Name:           aws.String(paramName),

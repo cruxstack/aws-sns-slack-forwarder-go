@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/cruxstack/aws-sns-slackbot/internal/sns"
+	"github.com/cruxstack/aws-sns-slack-forwarder-go/internal/sns"
 	"github.com/slack-go/slack"
 )
 

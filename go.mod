@@ -1,4 +1,4 @@
-module github.com/cruxstack/aws-sns-slackbot
+module github.com/cruxstack/aws-sns-slack-forwarder-go
 
 go 1.25.0
 

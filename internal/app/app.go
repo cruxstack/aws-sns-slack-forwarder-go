@@ -6,9 +6,9 @@ import (
 	"log/slog"
 
 	"github.com/aws/aws-lambda-go/events"
-	"github.com/cruxstack/aws-sns-slackbot/internal/config"
-	"github.com/cruxstack/aws-sns-slackbot/internal/slack"
-	"github.com/cruxstack/aws-sns-slackbot/internal/sns"
+	"github.com/cruxstack/aws-sns-slack-forwarder-go/internal/config"
+	"github.com/cruxstack/aws-sns-slack-forwarder-go/internal/slack"
+	"github.com/cruxstack/aws-sns-slack-forwarder-go/internal/sns"
 )
 
 // App is the main application

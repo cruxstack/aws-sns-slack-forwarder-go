@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cruxstack/aws-sns-slackbot/internal/sns"
+	"github.com/cruxstack/aws-sns-slack-forwarder-go/internal/sns"
 )
 
 func TestDetectSeverityColor(t *testing.T) {

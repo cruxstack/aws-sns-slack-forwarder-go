@@ -243,7 +243,7 @@ In Slack, right-click a channel → "View channel details" → Copy the channel 
 ### Project Structure
 
 ```
-aws-sns-slackbot/
+aws-sns-slack-forwarder-go/
 ├── cmd/lambda/          # Lambda entry point
 ├── internal/
 │   ├── app/            # Application logic

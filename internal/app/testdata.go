@@ -4,8 +4,8 @@ import (
 	"time"
 
 	"github.com/aws/aws-lambda-go/events"
-	"github.com/cruxstack/aws-sns-slackbot/internal/config"
-	"github.com/cruxstack/aws-sns-slackbot/internal/sns"
+	"github.com/cruxstack/aws-sns-slack-forwarder-go/internal/config"
+	"github.com/cruxstack/aws-sns-slack-forwarder-go/internal/sns"
 )
 
 // fakeSNSEvent returns a sample SNS Lambda event for testing.

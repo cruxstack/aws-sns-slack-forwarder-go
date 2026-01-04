@@ -3,7 +3,7 @@ package app
 import (
 	"log/slog"
 
-	"github.com/cruxstack/aws-sns-slackbot/internal/config"
+	"github.com/cruxstack/aws-sns-slack-forwarder-go/internal/config"
 )
 
 // Router handles routing of SNS messages to Slack channels

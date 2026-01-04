@@ -7,7 +7,7 @@ import (
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
-	"github.com/cruxstack/aws-sns-slackbot/internal/app"
+	"github.com/cruxstack/aws-sns-slack-forwarder-go/internal/app"
 )
 
 var (
