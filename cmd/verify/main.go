@@ -23,12 +23,9 @@ func main() {
 		Level: slog.LevelInfo,
 	}))
 
-	envPath := filepath.Join("cmd", "verify", ".env.test")
-	if _, err := os.Stat(envPath); err == nil {
-		fmt.Printf("Using %s for test environment\n", envPath)
-		// Note: We don't use godotenv to avoid the dependency
-		// Tests will set required env vars programmatically
-	}
+	// Set default test environment variables
+	// Tests will override these via scenario config_overrides
+	loadDefaultTestEnv()
 
 	ctx := context.Background()
 
@@ -75,5 +72,26 @@ func main() {
 
 	if failed > 0 {
 		os.Exit(1)
+	}
+}
+
+// loadDefaultTestEnv sets default environment variables for integration tests.
+// Individual scenarios can override these via config_overrides.
+func loadDefaultTestEnv() {
+	// Set defaults only if not already set
+	setEnvDefault("SLACK_TOKEN", "xoxb-test-token-12345")
+	setEnvDefault("SLACK_DEFAULT_CHANNEL", "C01234DEFAULT")
+	setEnvDefault("SLACK_API_URL", "https://localhost:9003/")
+	setEnvDefault("SNS_ROUTES", "[]")
+	setEnvDefault("FALLBACK_ENABLED", "true")
+	setEnvDefault("DEBUG_ENABLED", "false")
+	setEnvDefault("VALIDATE_SNS_SIGNATURES", "false")
+	setEnvDefault("NOTIFY_ON_SUBSCRIPTION", "false")
+}
+
+// setEnvDefault sets an environment variable only if it's not already set.
+func setEnvDefault(key, value string) {
+	if os.Getenv(key) == "" {
+		os.Setenv(key, value)
 	}
 }

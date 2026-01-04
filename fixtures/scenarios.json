@@ -249,5 +249,555 @@
         "body": "{\"ok\":true,\"channel\":\"C01234DEFAULT\",\"ts\":\"1234567890.123456\"}"
       }
     ]
+  },
+  {
+    "name": "route_exact_topic_arn_match",
+    "description": "Test exact topic ARN matching (no patterns)",
+    "config_overrides": {
+      "SNS_ROUTES": "[{\"name\":\"exact-match\",\"sns_topic_arn\":\"arn:aws:sns:us-east-1:123456789012:prod-alerts\",\"slack_channel_id\":\"C_EXACT_MATCH\",\"enabled\":true}]",
+      "FALLBACK_ENABLED": "false"
+    },
+    "sns_payload": {
+      "Records": [
+        {
+          "EventSource": "aws:sns",
+          "Sns": {
+            "Type": "Notification",
+            "MessageId": "route-exact-001",
+            "TopicArn": "arn:aws:sns:us-east-1:123456789012:prod-alerts",
+            "Subject": "Production Alert",
+            "Message": "This should match the exact route",
+            "Timestamp": "2025-01-15T16:00:00.000Z"
+          }
+        }
+      ]
+    },
+    "expected_calls": [
+      {
+        "service": "slack",
+        "method": "POST",
+        "path": "/chat.postMessage"
+      }
+    ],
+    "mock_responses": [
+      {
+        "service": "slack",
+        "method": "POST",
+        "path": "/auth.test",
+        "status_code": 200,
+        "body": "{\"ok\":true}"
+      },
+      {
+        "service": "slack",
+        "method": "POST",
+        "path": "/chat.postMessage",
+        "status_code": 200,
+        "body": "{\"ok\":true,\"channel\":\"C_EXACT_MATCH\",\"ts\":\"1234567890.123456\"}"
+      }
+    ]
+  },
+  {
+    "name": "route_pattern_suffix_match",
+    "description": "Test topic ARN pattern matching with suffix (.*-alerts$)",
+    "config_overrides": {
+      "SNS_ROUTES": "[{\"name\":\"suffix-pattern\",\"sns_topic_arn_pattern\":\".*-alerts$\",\"slack_channel_id\":\"C_SUFFIX_MATCH\",\"enabled\":true}]",
+      "FALLBACK_ENABLED": "false"
+    },
+    "sns_payload": {
+      "Records": [
+        {
+          "EventSource": "aws:sns",
+          "Sns": {
+            "Type": "Notification",
+            "MessageId": "route-suffix-001",
+            "TopicArn": "arn:aws:sns:us-west-2:987654321098:production-alerts",
+            "Subject": "Test",
+            "Message": "This should match suffix pattern",
+            "Timestamp": "2025-01-15T16:10:00.000Z"
+          }
+        }
+      ]
+    },
+    "expected_calls": [
+      {
+        "service": "slack",
+        "method": "POST",
+        "path": "/chat.postMessage"
+      }
+    ],
+    "mock_responses": [
+      {
+        "service": "slack",
+        "method": "POST",
+        "path": "/auth.test",
+        "status_code": 200,
+        "body": "{\"ok\":true}"
+      },
+      {
+        "service": "slack",
+        "method": "POST",
+        "path": "/chat.postMessage",
+        "status_code": 200,
+        "body": "{\"ok\":true,\"channel\":\"C_SUFFIX_MATCH\",\"ts\":\"1234567890.123456\"}"
+      }
+    ]
+  },
+  {
+    "name": "route_pattern_prefix_match",
+    "description": "Test topic ARN pattern matching with prefix",
+    "config_overrides": {
+      "SNS_ROUTES": "[{\"name\":\"prefix-pattern\",\"sns_topic_arn_pattern\":\"^arn:aws:sns:us-east-1:.*\",\"slack_channel_id\":\"C_PREFIX_MATCH\",\"enabled\":true}]",
+      "FALLBACK_ENABLED": "false"
+    },
+    "sns_payload": {
+      "Records": [
+        {
+          "EventSource": "aws:sns",
+          "Sns": {
+            "Type": "Notification",
+            "MessageId": "route-prefix-001",
+            "TopicArn": "arn:aws:sns:us-east-1:123456789012:any-topic-name",
+            "Subject": "Test",
+            "Message": "This should match prefix pattern for us-east-1",
+            "Timestamp": "2025-01-15T16:20:00.000Z"
+          }
+        }
+      ]
+    },
+    "expected_calls": [
+      {
+        "service": "slack",
+        "method": "POST",
+        "path": "/chat.postMessage"
+      }
+    ],
+    "mock_responses": [
+      {
+        "service": "slack",
+        "method": "POST",
+        "path": "/auth.test",
+        "status_code": 200,
+        "body": "{\"ok\":true}"
+      },
+      {
+        "service": "slack",
+        "method": "POST",
+        "path": "/chat.postMessage",
+        "status_code": 200,
+        "body": "{\"ok\":true,\"channel\":\"C_PREFIX_MATCH\",\"ts\":\"1234567890.123456\"}"
+      }
+    ]
+  },
+  {
+    "name": "route_pattern_region_wildcard",
+    "description": "Test topic ARN pattern with region wildcard matching",
+    "config_overrides": {
+      "SNS_ROUTES": "[{\"name\":\"region-wildcard\",\"sns_topic_arn_pattern\":\"arn:aws:sns:us-.*:.*:prod-.*\",\"slack_channel_id\":\"C_REGION_MATCH\",\"enabled\":true}]",
+      "FALLBACK_ENABLED": "false"
+    },
+    "sns_payload": {
+      "Records": [
+        {
+          "EventSource": "aws:sns",
+          "Sns": {
+            "Type": "Notification",
+            "MessageId": "route-region-001",
+            "TopicArn": "arn:aws:sns:us-west-2:555555555555:prod-database-alerts",
+            "Subject": "Test",
+            "Message": "This should match prod topics in any US region",
+            "Timestamp": "2025-01-15T16:30:00.000Z"
+          }
+        }
+      ]
+    },
+    "expected_calls": [
+      {
+        "service": "slack",
+        "method": "POST",
+        "path": "/chat.postMessage"
+      }
+    ],
+    "mock_responses": [
+      {
+        "service": "slack",
+        "method": "POST",
+        "path": "/auth.test",
+        "status_code": 200,
+        "body": "{\"ok\":true}"
+      },
+      {
+        "service": "slack",
+        "method": "POST",
+        "path": "/chat.postMessage",
+        "status_code": 200,
+        "body": "{\"ok\":true,\"channel\":\"C_REGION_MATCH\",\"ts\":\"1234567890.123456\"}"
+      }
+    ]
+  },
+  {
+    "name": "route_subject_pattern_match",
+    "description": "Test message subject pattern matching (ERROR|CRITICAL|FATAL)",
+    "config_overrides": {
+      "SNS_ROUTES": "[{\"name\":\"subject-filter\",\"sns_topic_arn_pattern\":\".*\",\"message_subject_pattern\":\"ERROR|CRITICAL|FATAL\",\"slack_channel_id\":\"C_SUBJECT_MATCH\",\"enabled\":true}]",
+      "FALLBACK_ENABLED": "false"
+    },
+    "sns_payload": {
+      "Records": [
+        {
+          "EventSource": "aws:sns",
+          "Sns": {
+            "Type": "Notification",
+            "MessageId": "route-subject-001",
+            "TopicArn": "arn:aws:sns:eu-west-1:111111111111:general-alerts",
+            "Subject": "ERROR: Application Crashed",
+            "Message": "Subject contains ERROR keyword",
+            "Timestamp": "2025-01-15T16:40:00.000Z"
+          }
+        }
+      ]
+    },
+    "expected_calls": [
+      {
+        "service": "slack",
+        "method": "POST",
+        "path": "/chat.postMessage"
+      }
+    ],
+    "mock_responses": [
+      {
+        "service": "slack",
+        "method": "POST",
+        "path": "/auth.test",
+        "status_code": 200,
+        "body": "{\"ok\":true}"
+      },
+      {
+        "service": "slack",
+        "method": "POST",
+        "path": "/chat.postMessage",
+        "status_code": 200,
+        "body": "{\"ok\":true,\"channel\":\"C_SUBJECT_MATCH\",\"ts\":\"1234567890.123456\"}"
+      }
+    ]
+  },
+  {
+    "name": "route_combined_topic_and_subject",
+    "description": "Test combined topic ARN and subject pattern matching",
+    "config_overrides": {
+      "SNS_ROUTES": "[{\"name\":\"combined-filter\",\"sns_topic_arn_pattern\":\".*:security-.*\",\"message_subject_pattern\":\"SECURITY|BREACH|UNAUTHORIZED\",\"slack_channel_id\":\"C_COMBINED_MATCH\",\"enabled\":true}]",
+      "FALLBACK_ENABLED": "false"
+    },
+    "sns_payload": {
+      "Records": [
+        {
+          "EventSource": "aws:sns",
+          "Sns": {
+            "Type": "Notification",
+            "MessageId": "route-combined-001",
+            "TopicArn": "arn:aws:sns:us-east-1:222222222222:security-alerts",
+            "Subject": "SECURITY: Unauthorized Access Attempt",
+            "Message": "Both topic and subject patterns match",
+            "Timestamp": "2025-01-15T16:50:00.000Z"
+          }
+        }
+      ]
+    },
+    "expected_calls": [
+      {
+        "service": "slack",
+        "method": "POST",
+        "path": "/chat.postMessage"
+      }
+    ],
+    "mock_responses": [
+      {
+        "service": "slack",
+        "method": "POST",
+        "path": "/auth.test",
+        "status_code": 200,
+        "body": "{\"ok\":true}"
+      },
+      {
+        "service": "slack",
+        "method": "POST",
+        "path": "/chat.postMessage",
+        "status_code": 200,
+        "body": "{\"ok\":true,\"channel\":\"C_COMBINED_MATCH\",\"ts\":\"1234567890.123456\"}"
+      }
+    ]
+  },
+  {
+    "name": "route_first_match_wins_priority",
+    "description": "Test first-match-wins routing priority with multiple matching routes",
+    "config_overrides": {
+      "SNS_ROUTES": "[{\"name\":\"first-route\",\"sns_topic_arn_pattern\":\".*:prod-.*\",\"slack_channel_id\":\"C_FIRST_ROUTE\",\"enabled\":true},{\"name\":\"second-route\",\"sns_topic_arn_pattern\":\".*:prod-.*\",\"slack_channel_id\":\"C_SECOND_ROUTE\",\"enabled\":true}]",
+      "FALLBACK_ENABLED": "false"
+    },
+    "sns_payload": {
+      "Records": [
+        {
+          "EventSource": "aws:sns",
+          "Sns": {
+            "Type": "Notification",
+            "MessageId": "route-priority-001",
+            "TopicArn": "arn:aws:sns:us-east-1:333333333333:prod-api-alerts",
+            "Subject": "Test Priority",
+            "Message": "Both routes match, first should win",
+            "Timestamp": "2025-01-15T17:00:00.000Z"
+          }
+        }
+      ]
+    },
+    "expected_calls": [
+      {
+        "service": "slack",
+        "method": "POST",
+        "path": "/chat.postMessage"
+      }
+    ],
+    "mock_responses": [
+      {
+        "service": "slack",
+        "method": "POST",
+        "path": "/auth.test",
+        "status_code": 200,
+        "body": "{\"ok\":true}"
+      },
+      {
+        "service": "slack",
+        "method": "POST",
+        "path": "/chat.postMessage",
+        "status_code": 200,
+        "body": "{\"ok\":true,\"channel\":\"C_FIRST_ROUTE\",\"ts\":\"1234567890.123456\"}"
+      }
+    ]
+  },
+  {
+    "name": "route_disabled_route_uses_fallback",
+    "description": "Test that disabled routes are skipped and fallback is used",
+    "config_overrides": {
+      "SNS_ROUTES": "[{\"name\":\"disabled-route\",\"sns_topic_arn\":\"arn:aws:sns:us-east-1:444444444444:test-topic\",\"slack_channel_id\":\"C_DISABLED\",\"enabled\":false}]",
+      "FALLBACK_ENABLED": "true"
+    },
+    "sns_payload": {
+      "Records": [
+        {
+          "EventSource": "aws:sns",
+          "Sns": {
+            "Type": "Notification",
+            "MessageId": "route-disabled-001",
+            "TopicArn": "arn:aws:sns:us-east-1:444444444444:test-topic",
+            "Subject": "Test Disabled Route",
+            "Message": "Route is disabled, should use fallback channel",
+            "Timestamp": "2025-01-15T17:10:00.000Z"
+          }
+        }
+      ]
+    },
+    "expected_calls": [
+      {
+        "service": "slack",
+        "method": "POST",
+        "path": "/chat.postMessage"
+      }
+    ],
+    "mock_responses": [
+      {
+        "service": "slack",
+        "method": "POST",
+        "path": "/auth.test",
+        "status_code": 200,
+        "body": "{\"ok\":true}"
+      },
+      {
+        "service": "slack",
+        "method": "POST",
+        "path": "/chat.postMessage",
+        "status_code": 200,
+        "body": "{\"ok\":true,\"channel\":\"C01234DEFAULT\",\"ts\":\"1234567890.123456\"}"
+      }
+    ]
+  },
+  {
+    "name": "route_no_match_uses_fallback",
+    "description": "Test fallback channel when no routes match",
+    "config_overrides": {
+      "SNS_ROUTES": "[{\"name\":\"specific-route\",\"sns_topic_arn\":\"arn:aws:sns:us-east-1:555555555555:specific-topic\",\"slack_channel_id\":\"C_SPECIFIC\",\"enabled\":true}]",
+      "FALLBACK_ENABLED": "true"
+    },
+    "sns_payload": {
+      "Records": [
+        {
+          "EventSource": "aws:sns",
+          "Sns": {
+            "Type": "Notification",
+            "MessageId": "route-fallback-001",
+            "TopicArn": "arn:aws:sns:us-east-1:555555555555:different-topic",
+            "Subject": "No Match",
+            "Message": "No routes match, should use fallback",
+            "Timestamp": "2025-01-15T17:20:00.000Z"
+          }
+        }
+      ]
+    },
+    "expected_calls": [
+      {
+        "service": "slack",
+        "method": "POST",
+        "path": "/chat.postMessage"
+      }
+    ],
+    "mock_responses": [
+      {
+        "service": "slack",
+        "method": "POST",
+        "path": "/auth.test",
+        "status_code": 200,
+        "body": "{\"ok\":true}"
+      },
+      {
+        "service": "slack",
+        "method": "POST",
+        "path": "/chat.postMessage",
+        "status_code": 200,
+        "body": "{\"ok\":true,\"channel\":\"C01234DEFAULT\",\"ts\":\"1234567890.123456\"}"
+      }
+    ]
+  },
+  {
+    "name": "route_no_match_no_fallback_skipped",
+    "description": "Test message is skipped when no routes match and fallback is disabled",
+    "config_overrides": {
+      "SNS_ROUTES": "[{\"name\":\"specific-route\",\"sns_topic_arn\":\"arn:aws:sns:us-east-1:666666666666:specific-topic\",\"slack_channel_id\":\"C_SPECIFIC\",\"enabled\":true}]",
+      "FALLBACK_ENABLED": "false"
+    },
+    "sns_payload": {
+      "Records": [
+        {
+          "EventSource": "aws:sns",
+          "Sns": {
+            "Type": "Notification",
+            "MessageId": "route-skip-001",
+            "TopicArn": "arn:aws:sns:us-east-1:666666666666:unmatched-topic",
+            "Subject": "Should be skipped",
+            "Message": "No routes match and fallback disabled",
+            "Timestamp": "2025-01-15T17:30:00.000Z"
+          }
+        }
+      ]
+    },
+    "expected_calls": [],
+    "mock_responses": [
+      {
+        "service": "slack",
+        "method": "POST",
+        "path": "/auth.test",
+        "status_code": 200,
+        "body": "{\"ok\":true}"
+      }
+    ]
+  },
+  {
+    "name": "route_multiple_records_different_routes",
+    "description": "Test multiple records routing to different channels based on patterns",
+    "config_overrides": {
+      "SNS_ROUTES": "[{\"name\":\"prod-route\",\"sns_topic_arn_pattern\":\".*:prod-.*\",\"slack_channel_id\":\"C_PROD_CHANNEL\",\"enabled\":true},{\"name\":\"staging-route\",\"sns_topic_arn_pattern\":\".*:staging-.*\",\"slack_channel_id\":\"C_STAGING_CHANNEL\",\"enabled\":true}]",
+      "FALLBACK_ENABLED": "false"
+    },
+    "sns_payload": {
+      "Records": [
+        {
+          "EventSource": "aws:sns",
+          "Sns": {
+            "Type": "Notification",
+            "MessageId": "multi-route-001",
+            "TopicArn": "arn:aws:sns:us-east-1:777777777777:prod-alerts",
+            "Subject": "Production Alert",
+            "Message": "Routes to prod channel",
+            "Timestamp": "2025-01-15T17:40:00.000Z"
+          }
+        },
+        {
+          "EventSource": "aws:sns",
+          "Sns": {
+            "Type": "Notification",
+            "MessageId": "multi-route-002",
+            "TopicArn": "arn:aws:sns:us-east-1:777777777777:staging-alerts",
+            "Subject": "Staging Alert",
+            "Message": "Routes to staging channel",
+            "Timestamp": "2025-01-15T17:41:00.000Z"
+          }
+        }
+      ]
+    },
+    "expected_calls": [
+      {
+        "service": "slack",
+        "method": "POST",
+        "path": "/chat.postMessage"
+      }
+    ],
+    "mock_responses": [
+      {
+        "service": "slack",
+        "method": "POST",
+        "path": "/auth.test",
+        "status_code": 200,
+        "body": "{\"ok\":true}"
+      },
+      {
+        "service": "slack",
+        "method": "POST",
+        "path": "/chat.postMessage",
+        "status_code": 200,
+        "body": "{\"ok\":true,\"ts\":\"1234567890.123456\"}"
+      }
+    ]
+  },
+  {
+    "name": "route_subject_case_sensitive",
+    "description": "Test that subject pattern matching is case-sensitive",
+    "config_overrides": {
+      "SNS_ROUTES": "[{\"name\":\"uppercase-filter\",\"sns_topic_arn_pattern\":\".*\",\"message_subject_pattern\":\"ERROR\",\"slack_channel_id\":\"C_UPPERCASE\",\"enabled\":true}]",
+      "FALLBACK_ENABLED": "true"
+    },
+    "sns_payload": {
+      "Records": [
+        {
+          "EventSource": "aws:sns",
+          "Sns": {
+            "Type": "Notification",
+            "MessageId": "route-case-001",
+            "TopicArn": "arn:aws:sns:us-east-1:888888888888:test-topic",
+            "Subject": "error: lowercase should not match",
+            "Message": "Subject is lowercase, pattern is uppercase",
+            "Timestamp": "2025-01-15T17:50:00.000Z"
+          }
+        }
+      ]
+    },
+    "expected_calls": [
+      {
+        "service": "slack",
+        "method": "POST",
+        "path": "/chat.postMessage"
+      }
+    ],
+    "mock_responses": [
+      {
+        "service": "slack",
+        "method": "POST",
+        "path": "/auth.test",
+        "status_code": 200,
+        "body": "{\"ok\":true}"
+      },
+      {
+        "service": "slack",
+        "method": "POST",
+        "path": "/chat.postMessage",
+        "status_code": 200,
+        "body": "{\"ok\":true,\"channel\":\"C01234DEFAULT\",\"ts\":\"1234567890.123456\"}"
+      }
+    ]
   }
 ]

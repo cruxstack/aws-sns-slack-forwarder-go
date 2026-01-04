@@ -394,29 +394,209 @@ func TestFirstMatchWins(t *testing.T) {
 }
 ```
 
+## Integration Tests
+
+Integration tests verify end-to-end functionality using mock HTTP servers for the Slack API. These tests run actual application code against realistic scenarios without requiring live credentials.
+
+### Running Integration Tests
+
+```bash
+# Run all integration tests
+make test-verify
+
+# Run with verbose output
+make test-verify-verbose
+
+# Run specific scenario
+go run ./cmd/verify -filter "route_exact"
+
+# Run all tests (unit + integration)
+make test
+```
+
+### Test Architecture
+
+Integration tests use:
+- **Mock Slack API**: HTTPS server on `localhost:9003` with self-signed TLS cert
+- **JSON Scenarios**: Test cases defined in `fixtures/scenarios.json`
+- **Environment Configuration**: Set programmatically in code
+
+### Test Environment Configuration
+
+Tests set environment variables programmatically with this precedence:
+1. Default values set by `loadDefaultTestEnv()` in `cmd/verify/main.go`
+2. Scenario-specific `config_overrides` (overrides defaults)
+
+Default test configuration (set programmatically):
+```go
+SLACK_TOKEN=xoxb-test-token-12345
+SLACK_DEFAULT_CHANNEL=C01234DEFAULT
+SLACK_API_URL=https://localhost:9003/
+SNS_ROUTES=[]
+FALLBACK_ENABLED=true
+DEBUG_ENABLED=false
+VALIDATE_SNS_SIGNATURES=false
+NOTIFY_ON_SUBSCRIPTION=false
+```
+
+Each test scenario can override any of these values via the `config_overrides` field in the scenario definition.
+
+### Adding New Integration Test Scenarios
+
+1. **Add scenario to `fixtures/scenarios.json`**:
+
+```json
+{
+  "name": "my_new_test",
+  "description": "Test description",
+  "config_overrides": {
+    "SNS_ROUTES": "[{...}]",
+    "FALLBACK_ENABLED": "true"
+  },
+  "sns_payload": {
+    "Records": [{
+      "EventSource": "aws:sns",
+      "Sns": {
+        "Type": "Notification",
+        "MessageId": "test-123",
+        "TopicArn": "arn:aws:sns:us-east-1:123:topic",
+        "Subject": "Test",
+        "Message": "Message body",
+        "Timestamp": "2025-01-15T10:00:00.000Z"
+      }
+    }]
+  },
+  "expected_calls": [
+    {
+      "service": "slack",
+      "method": "POST",
+      "path": "/chat.postMessage"
+    }
+  ],
+  "mock_responses": [
+    {
+      "service": "slack",
+      "method": "POST",
+      "path": "/auth.test",
+      "status_code": 200,
+      "body": "{\"ok\":true}"
+    },
+    {
+      "service": "slack",
+      "method": "POST",
+      "path": "/chat.postMessage",
+      "status_code": 200,
+      "body": "{\"ok\":true,\"channel\":\"C123\",\"ts\":\"123.456\"}"
+    }
+  ]
+}
+```
+
+2. **Run the test**:
+```bash
+go run ./cmd/verify -filter "my_new_test" -verbose
+```
+
+### Route Matching Test Coverage
+
+The integration tests focus heavily on routing logic with 12 dedicated scenarios:
+
+**Route Matching Types:**
+- `route_exact_topic_arn_match` - Exact string match on `sns_topic_arn`
+- `route_pattern_suffix_match` - Regex pattern `.*-alerts$`
+- `route_pattern_prefix_match` - Regex pattern `^arn:aws:sns:us-east-1:.*`
+- `route_pattern_region_wildcard` - Multi-wildcard pattern `arn:aws:sns:us-.*:.*:prod-.*`
+
+**Subject Filtering:**
+- `route_subject_pattern_match` - Subject regex `ERROR|CRITICAL|FATAL`
+- `route_combined_topic_and_subject` - Both topic and subject patterns must match
+- `route_subject_case_sensitive` - Verify case-sensitive matching
+
+**Priority & Fallback:**
+- `route_first_match_wins_priority` - Multiple routes match, first wins
+- `route_disabled_route_uses_fallback` - Disabled routes are skipped
+- `route_no_match_uses_fallback` - Fallback channel when no match
+- `route_no_match_no_fallback_skipped` - Message skipped when no match and fallback disabled
+
+**Multi-Record:**
+- `route_multiple_records_different_routes` - Different records route to different channels
+
+**Additional Scenarios:**
+- `simple_sns_notification` - Basic notification to default channel
+- `error_severity_notification` - Error color detection
+- `json_formatted_message` - JSON pretty-printing
+- `multiple_sns_records` - Multiple records in one event
+- `subscription_confirmation` - Subscription message handling
+- `cloudwatch_alarm` - CloudWatch alarm formatting
+
+### Mock Server Details
+
+The Slack mock server:
+- Listens on `https://localhost:9003/`
+- Supports path wildcards: `/chat.postMessage`, `/auth.test`
+- Records all requests for validation
+- Returns predefined responses from scenarios
+- Uses self-signed TLS certificate (trusted via custom HTTP client)
+
+### Test Output
+
+Verbose mode shows:
+- Scenario name and description
+- Environment file being loaded
+- Mock server request logs (prefixed with `→`)
+- Application log output (indented with `    `)
+- Expected call validation results
+- Test duration
+
+Example output:
+```
+Loading test environment from .env.test.default
+
+▶ Running: route_exact_topic_arn_match
+  Test exact topic ARN matching (no patterns)
+  → Slack POST /auth.test
+  → Slack POST /chat.postMessage
+  
+  Validation:
+  ✓ All expected calls verified (2 total)
+
+✓ PASSED (Duration: 0.52s)
+
+═══════════════════════════════════════════════════════════
+  Test Results: ✓ All 18 tests passed, 0 skipped
+═══════════════════════════════════════════════════════════
+```
+
+### Troubleshooting Integration Tests
+
+**Tests fail with "Slack API test failed":**
+- Check that `.env.test.default` exists in `cmd/verify/`
+- Verify `SLACK_API_URL` is set to `https://localhost:9003/`
+- Ensure mock server is starting correctly (check for port conflicts)
+
+**Tests fail with "no matching route":**
+- Check the `SNS_ROUTES` configuration in scenario's `config_overrides`
+- Verify regex patterns are properly escaped in JSON
+- Run with `-verbose` to see routing decisions
+
+**Tests fail with "expected call not found":**
+- Verify `expected_calls` match what the application actually sends
+- Check mock responses are correctly configured
+- Use `-verbose` to see all captured requests
+
 ## Future Testing Enhancements
 
-Potential areas for expansion (following github-ops-app patterns):
+Potential areas for expansion:
 
-1. **Integration Tests with Mock Servers**
-   - HTTP mock servers for Slack API
-   - Test real Slack SDK against mocks
-   - Capture and validate API calls
-
-2. **Scenario-Based Testing**
-   - JSON scenario definitions
-   - End-to-end workflow tests
-   - Multiple message sequences
-
-3. **Config Validation Tests**
-   - Test SSM parameter loading
-   - Route compilation errors
-   - Configuration edge cases
-
-4. **Performance Tests**
+1. **Performance Tests**
    - Large message handling
    - Multiple concurrent routes
    - Memory usage validation
+
+2. **Error Handling Tests**
+   - Slack API failures (rate limits, timeouts)
+   - Malformed SNS events
+   - Invalid route configurations
 
 ## Continuous Integration
 

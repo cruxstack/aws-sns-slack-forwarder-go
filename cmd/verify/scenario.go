@@ -9,6 +9,9 @@ import (
 	"net/http"
 	"os"
 	"time"
+
+	"github.com/aws/aws-lambda-go/events"
+	"github.com/cruxstack/aws-sns-slack-forwarder-go/internal/app"
 )
 
 // TestScenario defines a test case with input SNS events and expected outcomes.
@@ -87,35 +90,53 @@ func runScenario(ctx context.Context, scenario TestScenario, verbose bool, logge
 		},
 	}
 
-	// Set environment variables for testing
-	os.Setenv("SLACK_TOKEN", "xoxb-test-token")
-	os.Setenv("SLACK_API_URL", "https://localhost:9003/")
-	os.Setenv("SLACK_DEFAULT_CHANNEL", "C01234DEFAULT")
-	os.Setenv("FALLBACK_ENABLED", "true")
-	os.Setenv("DEBUG_ENABLED", "false")
-
-	// Apply config overrides
+	// Apply scenario-specific config overrides
+	// Default test env vars are already set by main.go's loadDefaultTestEnv()
 	for key, value := range scenario.ConfigOverrides {
 		os.Setenv(key, value)
+	}
+
+	// Parse SNS event
+	var snsEvent events.SNSEvent
+	if err := json.Unmarshal(scenario.SNSPayload, &snsEvent); err != nil {
+		return fmt.Errorf("parse SNS payload: %w", err)
 	}
 
 	if verbose {
 		fmt.Printf("\n  Application Output:\n")
 	}
 
-	// Parse SNS event
-	var snsEvent map[string]interface{}
-	if err := json.Unmarshal(scenario.SNSPayload, &snsEvent); err != nil {
-		return fmt.Errorf("parse SNS payload: %w", err)
+	// Initialize app with test configuration
+	// The app will load config from environment variables (set above and from .env.test)
+	a, err := app.New(ctx)
+	if err != nil {
+		return fmt.Errorf("app initialization failed: %w", err)
 	}
 
-	// TODO: Call your app's HandleSNSEvent function here
-	// This requires creating an App instance with the test configuration
-	// For now, we'll simulate success
 	if verbose {
-		fmt.Printf("  ✓ SNS event processed\n")
+		fmt.Printf("  ✓ App initialized successfully\n")
 	}
 
+	// Process the SNS event
+	processErr := a.HandleSNSEvent(ctx, snsEvent)
+
+	if scenario.ExpectError {
+		if processErr == nil {
+			return fmt.Errorf("expected error but processing succeeded")
+		}
+		if verbose {
+			fmt.Printf("  ✓ Expected error occurred: %v\n", processErr)
+		}
+	} else {
+		if processErr != nil {
+			return fmt.Errorf("process event failed: %w", processErr)
+		}
+		if verbose {
+			fmt.Printf("  ✓ SNS event processed successfully\n")
+		}
+	}
+
+	// Allow time for async operations to complete
 	time.Sleep(500 * time.Millisecond)
 
 	// Validate expected API calls
