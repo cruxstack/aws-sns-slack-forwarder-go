@@ -35,7 +35,7 @@ AWS does not provide a direct integration to Slack. They suggest using a Lambda 
 
 ```bash
 # Build Lambda function
-make build-lambda
+make build
 
 # Package for deployment
 make package-lambda
@@ -268,7 +268,7 @@ aws-sns-slack-forwarder-go/
 ### Build Commands
 
 ```bash
-make build-lambda    # Build Lambda binary
+make build    # Build Lambda binary
 make package-lambda  # Build and package as zip
 make test            # Run tests
 make test-verbose    # Run tests with verbose output
@@ -336,7 +336,7 @@ export SLACK_DEFAULT_CHANNEL=C01234567890
 export SNS_ROUTES='[{"name":"test","sns_topic_arn":"arn:aws:sns:us-east-1:123456789012:prod-alerts","slack_channel_id":"C01234567890","enabled":true}]'
 
 # Build and test
-make build-lambda
+make build
 ./dist/bootstrap < test-event.json
 ```
 

@@ -1,9 +1,9 @@
-.PHONY: help build-lambda clean test test-unit test-verbose test-coverage test-verify test-verify-verbose fmt lint tidy
+.PHONY: help build clean test test-unit test-verbose test-coverage test-verify test-verify-verbose fmt lint tidy
 
 # Default target
 help:
 	@echo "Available targets:"
-	@echo "  build-lambda      - Build Lambda function binary"
+	@echo "  build      - Build Lambda function binary"
 	@echo "  package-lambda    - Build and package Lambda function as zip"
 	@echo "  clean             - Remove build artifacts"
 	@echo "  test              - Run all tests (unit + integration)"
@@ -17,14 +17,14 @@ help:
 	@echo "  tidy              - Tidy and verify dependencies"
 
 # Build Lambda function
-build-lambda:
+build:
 	@echo "Building Lambda function..."
 	@mkdir -p dist
 	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -tags lambda.norpc -ldflags="-s -w" -o dist/bootstrap ./cmd/lambda
 	@echo "Build complete: dist/bootstrap"
 
 # Package Lambda function
-package-lambda: build-lambda
+package-lambda: build
 	@echo "Packaging Lambda function..."
 	@cd dist && zip -q function.zip bootstrap
 	@echo "Package complete: dist/function.zip"
