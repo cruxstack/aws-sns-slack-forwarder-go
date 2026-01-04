@@ -1,8 +1,12 @@
 # AWS SNS to Slack Forwarder
 
+## What 
+
 A Go-based AWS Lambda function that forwards SNS messages to Slack channels with flexible routing and rich message formatting.
 
-## Features
+## Why
+
+AWS does not provide a direct integration to Slack. They suggest using a Lambda for forward messages, but the example they provide is extremely limited in functionality. This solutions provides the following robust features:
 
 - **Flexible Routing**: Route messages to different Slack channels based on SNS topic ARN patterns and message subjects
 - **Rich Formatting**: Beautiful Slack Block Kit messages with color coding based on severity
@@ -11,6 +15,12 @@ A Go-based AWS Lambda function that forwards SNS messages to Slack channels with
 - **First-Match Routing**: Routes are evaluated in order, first match wins
 - **Fallback Channel**: Optional default channel for messages that don't match any route
 - **Message Truncation**: Intelligent truncation for long messages with length indicators
+
+## How It Works
+
+1. Lambda is triggered via SNS notification
+2. The Lambda determines the appropriate Slack channel to forward to based on configured routing rules.
+3. If a rule is matched, the Lambda forwards the SNS notification to the desired Slack channel.
 
 ## Quick Start
 
@@ -33,7 +43,90 @@ make package-lambda
 
 This creates `dist/function.zip` ready for Lambda deployment.
 
-### Configuration
+## Deployment
+
+### Lambda Function
+
+1. **Build and package:**
+   ```bash
+   make package-lambda
+   ```
+
+2. **Create Lambda function:**
+   ```bash
+   aws lambda create-function \
+     --function-name sns-slack-forwarder \
+     --runtime provided.al2023 \
+     --role arn:aws:iam::123456789012:role/lambda-execution-role \
+     --handler bootstrap \
+     --zip-file fileb://dist/function.zip \
+     --timeout 30 \
+     --memory-size 256
+   ```
+
+3. **Configure environment variables:**
+   ```bash
+   aws lambda update-function-configuration \
+     --function-name sns-slack-forwarder \
+     --environment Variables="{
+       SLACK_TOKEN=arn:aws:ssm:us-east-1:123456789012:parameter/slack/bot-token,
+       SLACK_DEFAULT_CHANNEL=C01234567890,
+       SNS_ROUTES_PARAM_ARN=arn:aws:ssm:us-east-1:123456789012:parameter/sns-forwarder/routes,
+       FALLBACK_ENABLED=true,
+       DEBUG_ENABLED=false
+     }"
+   ```
+
+4. **Subscribe to SNS topics:**
+   ```bash
+   aws sns subscribe \
+     --topic-arn arn:aws:sns:us-east-1:123456789012:prod-alerts \
+     --protocol lambda \
+     --notification-endpoint arn:aws:lambda:us-east-1:123456789012:function:sns-slack-forwarder
+   ```
+
+5. **Grant SNS permission to invoke Lambda:**
+   ```bash
+   aws lambda add-permission \
+     --function-name sns-slack-forwarder \
+     --statement-id sns-invoke \
+     --action lambda:InvokeFunction \
+     --principal sns.amazonaws.com \
+     --source-arn arn:aws:sns:us-east-1:123456789012:prod-alerts
+   ```
+
+### IAM Permissions
+
+The Lambda execution role needs:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "logs:CreateLogGroup",
+        "logs:CreateLogStream",
+        "logs:PutLogEvents"
+      ],
+      "Resource": "arn:aws:logs:*:*:*"
+    },
+    {
+      "Effect": "Allow",
+      "Action": ["ssm:GetParameter"],
+      "Resource": [
+        "arn:aws:ssm:us-east-1:123456789012:parameter/sns-forwarder/*",
+        "arn:aws:ssm:us-east-1:123456789012:parameter/slack/*"
+      ]
+    }
+  ]
+}
+```
+
+See [examples/iam-policy.json](examples/iam-policy.json) for a complete example.
+
+## Configuration
 
 Configure via environment variables (see [.env.example](.env.example)):
 
@@ -130,89 +223,6 @@ Messages are formatted using Slack Block Kit with:
   - 🟡 Orange: `warn`, `caution`, `alert`
   - 🟢 Green: `success`, `complete`, `info`
   - 🔵 Blue: Default
-
-## Deployment
-
-### Lambda Function
-
-1. **Build and package:**
-   ```bash
-   make package-lambda
-   ```
-
-2. **Create Lambda function:**
-   ```bash
-   aws lambda create-function \
-     --function-name sns-slack-forwarder \
-     --runtime provided.al2023 \
-     --role arn:aws:iam::123456789012:role/lambda-execution-role \
-     --handler bootstrap \
-     --zip-file fileb://dist/function.zip \
-     --timeout 30 \
-     --memory-size 256
-   ```
-
-3. **Configure environment variables:**
-   ```bash
-   aws lambda update-function-configuration \
-     --function-name sns-slack-forwarder \
-     --environment Variables="{
-       SLACK_TOKEN=arn:aws:ssm:us-east-1:123456789012:parameter/slack/bot-token,
-       SLACK_DEFAULT_CHANNEL=C01234567890,
-       SNS_ROUTES_PARAM_ARN=arn:aws:ssm:us-east-1:123456789012:parameter/sns-forwarder/routes,
-       FALLBACK_ENABLED=true,
-       DEBUG_ENABLED=false
-     }"
-   ```
-
-4. **Subscribe to SNS topics:**
-   ```bash
-   aws sns subscribe \
-     --topic-arn arn:aws:sns:us-east-1:123456789012:prod-alerts \
-     --protocol lambda \
-     --notification-endpoint arn:aws:lambda:us-east-1:123456789012:function:sns-slack-forwarder
-   ```
-
-5. **Grant SNS permission to invoke Lambda:**
-   ```bash
-   aws lambda add-permission \
-     --function-name sns-slack-forwarder \
-     --statement-id sns-invoke \
-     --action lambda:InvokeFunction \
-     --principal sns.amazonaws.com \
-     --source-arn arn:aws:sns:us-east-1:123456789012:prod-alerts
-   ```
-
-### IAM Permissions
-
-The Lambda execution role needs:
-
-```json
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Action": [
-        "logs:CreateLogGroup",
-        "logs:CreateLogStream",
-        "logs:PutLogEvents"
-      ],
-      "Resource": "arn:aws:logs:*:*:*"
-    },
-    {
-      "Effect": "Allow",
-      "Action": ["ssm:GetParameter"],
-      "Resource": [
-        "arn:aws:ssm:us-east-1:123456789012:parameter/sns-forwarder/*",
-        "arn:aws:ssm:us-east-1:123456789012:parameter/slack/*"
-      ]
-    }
-  ]
-}
-```
-
-See [examples/iam-policy.json](examples/iam-policy.json) for a complete example.
 
 ## Slack Setup
 
