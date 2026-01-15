@@ -70,7 +70,7 @@ func runScenario(ctx context.Context, scenario TestScenario, verbose bool, logge
 	go func() {
 		slackReady <- true
 		if err := slackServer.ListenAndServeTLS("", ""); err != http.ErrServerClosed {
-			logger.Error("slack mock server error", slog.String("error", err.Error()))
+			logger.Error("slack mock server error", slog.Any("error", err))
 		}
 	}()
 

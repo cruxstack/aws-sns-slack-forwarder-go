@@ -32,13 +32,13 @@ func main() {
 	path := filepath.Join(*scenarioFile)
 	raw, err := os.ReadFile(path)
 	if err != nil {
-		logger.Error("failed to read scenarios file", slog.String("error", err.Error()))
+		logger.Error("failed to read scenarios file", slog.Any("error", err))
 		os.Exit(1)
 	}
 
 	var scenarios []TestScenario
 	if err := json.Unmarshal(raw, &scenarios); err != nil {
-		logger.Error("failed to parse scenarios", slog.String("error", err.Error()))
+		logger.Error("failed to parse scenarios", slog.Any("error", err))
 		os.Exit(1)
 	}
 

@@ -31,7 +31,7 @@ func handler(ctx context.Context, event events.SNSEvent) error {
 
 		appInst, initErr = app.New(ctx)
 		if initErr != nil {
-			logger.Error("failed to initialize app", "error", initErr)
+			logger.Error("failed to initialize app", slog.Any("error", initErr))
 			return
 		}
 

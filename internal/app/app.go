@@ -77,7 +77,7 @@ func (a *App) HandleSNSEvent(ctx context.Context, event events.SNSEvent) error {
 			a.logger.Error("failed to process message",
 				"message_id", msg.MessageID,
 				"topic_arn", msg.TopicArn,
-				"error", err)
+				slog.Any("error", err))
 		}
 	}
 
