@@ -7,7 +7,7 @@ require (
 	github.com/aws/aws-sdk-go-v2 v1.41.0
 	github.com/aws/aws-sdk-go-v2/config v1.32.5
 	github.com/aws/aws-sdk-go-v2/service/ssm v1.67.7
-	github.com/slack-go/slack v0.17.3
+	github.com/slack-go/slack v0.18.0
 )
 
 require (
